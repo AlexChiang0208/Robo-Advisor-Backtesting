@@ -117,6 +117,7 @@ index 可填入以下八種指標，或呈現全部
 ```python
 self.show_portfolio()
 ```
+![example1](example1.png)
 
 
 #### 4. 資產收益細節
@@ -124,7 +125,7 @@ self.show_portfolio()
 ```python
 self.portfolio_benchmark
 ```
-
+![example2](example2.png)
 
 ---
 

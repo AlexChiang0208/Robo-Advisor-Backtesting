@@ -9,6 +9,9 @@
 3. 定期再平衡
 4. 停損再平衡
 
+#### 範例績效
+![example1](picture for README example/example1.png)
+
 ## 使用方法
 下載此 repository，安裝相關套件後可直接於 jupyter notebook 執行 [主程式](main.ipynb)。
 
@@ -117,7 +120,7 @@ index 可填入以下八種指標，或呈現全部
 ```python
 self.show_portfolio()
 ```
-![example1](example1.png)
+![example2](picture for README example/example2.png)
 
 
 #### 4. 資產收益細節
@@ -125,7 +128,7 @@ self.show_portfolio()
 ```python
 self.portfolio_benchmark
 ```
-![example2](example2.png)
+![example3](picture for README example/example3.png)
 
 ---
 

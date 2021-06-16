@@ -6,8 +6,6 @@
 
 完成日期：2021/6/12
 
-Python 版本：3.7.4
-
 * [一、專案簡介](#專案簡介)
   * [理財機器人架構](#理財機器人架構)
   * [回測範例績效](#回測範例績效)
@@ -38,6 +36,7 @@ Python 版本：3.7.4
 下載此 repository，安裝相關套件後可直接於 jupyter notebook 執行 [主程式](main.ipynb)。
 
 * [執行環境需求](requirements.txt)
+* Python 版本：3.7.4
 
 > 註：可以自行更換 [股票資料](dataset/TW150_CloseAdj.csv) 與 [大盤股價](dataset/TWII_CloseAdj.csv)，需注意：(1)兩者的日期要統一 (2)事先移除缺漏值 (3)檔案格式和內建檔案相同。若有其他需求可以於 [套件模組](module/data.py) 中自行調整。
 

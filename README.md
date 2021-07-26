@@ -21,6 +21,7 @@
   * [影片分享](#影片分享)
   * [補充-配對交易](#補充-配對交易)
   * [補充-更新股價資料](#補充-更新股價資料)
+  * [補充-美股投資](#補充-美股投資)
 
 ---
 
@@ -189,4 +190,9 @@ self.portfolio_benchmark
 * 程式碼存放於 Google Colab 中
 * 順便附上了證交所爬蟲程式碼
 ##### [更新股價_Colab](https://colab.research.google.com/drive/1YseB1XUigvjcX0QmtI1vU2E6T1qgAwMt?usp=sharing)
+
+#### 補充-美股投資
+牛市追蹤美國大盤、熊市追蹤美國公債，回測長期被動投資的累積報酬
+* 程式碼存放於 Google Colab 中
+##### [美股投資_Colab](https://colab.research.google.com/drive/13B_xZ6f8IDduGShKgAoWfxuHvufmP46p?usp=sharing)
 

@@ -1,5 +1,4 @@
 scipy
-statsmodels
 datetime
 pandas
 numpy

@@ -1,21 +1,29 @@
 import pandas as pd
 import numpy as np
+import os
 
 from module.data import Data
 from module.time import real_start_day
 from module.calculate import *
 
-TW150, TWII, ret1_TW150, ret1_TWII, ret240_TW150, ret240_TWII, stock_name = Data()
+path = os.getcwd()
+twScale = pd.read_csv(path + '/dataset/twScale.csv', parse_dates=True, index_col='Date')
+twStock, TWII, ret1_twStock, ret1_TWII, ret240_twStock, ret240_TWII = Data()
 
+### test
+# TW150 = pd.read_csv(path + '/dataset/TW150_CloseAdj.csv', parse_dates=True, index_col='Date')
+# stock_id = TW150.columns
 
 class Backtest:
 
-    # set init
-    def __init__(self, strategy, beginning_money = 100,
+    def __init__(self, beginning_money = 100,
                  start_day = '2006-01-01', 
+                 scale_select = 'max',
+                 scale_num = 150,
+                 strategy = 'alpha',
+                 feature_select = 'max',
                  feature_period = 240, 
-                 selected_from_last = False,
-                 n_stock = 5, 
+                 stock_num = 5, 
                  max_percentage = 0.2, 
                  rebalance = 240, 
                  dynamic_rebalance = False, 
@@ -23,10 +31,6 @@ class Backtest:
         
         '''
         < 參數介紹 >
-        strategy = ['alpha', 'beta', 'skew1', 'skew2']
-        * skew1 每日報酬率計算的偏態
-        * skew2 每年報酬率計算的偏態
-        
         beginning_money
         預設起始金額 100 元
         
@@ -34,17 +38,31 @@ class Backtest:
         預設為 '2006-01-01'
         需設定在 2006 年之後  
         
+        scale_select = ['max', 'min']
+        預設為 max
+        * max 選取市值最大者
+        * min 選取市值最小者        
+        
+        scale_num
+        預設為 150
+        以市值排名數量作為股票池
+        
+        strategy = ['alpha', 'beta', 'skew1', 'skew2']
+        預設為 alpha
+        * skew1 每日報酬率計算的偏態
+        * skew2 每年報酬率計算的偏態
+        
+        feature_select = ['max', 'min']
+        預設為 max
+        * max 選取參數最大者
+        * min 選取參數最小者
+        
         feature_period
         預設為 240
         參數取自多長的時間，最多 240
         (建議不少於 60 天)
         
-        selected_from_last = [True, False]
-        預設為 False
-        * True 選取參數最小者
-        * False 選取參數最大者
-        
-        n_stock
+        stock_num
         預設為 5
         投資組合有幾檔股票
         (建議以 3 5 8 10 為主)
@@ -52,7 +70,7 @@ class Backtest:
         max_percentage
         預設為 0.2
         每一檔股票的最大權重
-        最小為 1 / n_stock
+        最小為 1 / stock_num
         最大為 1
         
         rebalance
@@ -75,13 +93,6 @@ class Backtest:
         self.beginning_money = beginning_money
         self.strategy = strategy
         self.start_day = start_day
-        self.feature_period = feature_period
-        self.selected_from_last = selected_from_last
-        self.n_stock = n_stock
-        self.max_percentage = max_percentage
-        self.rebalance = rebalance
-        self.dynamic_rebalance = dynamic_rebalance
-        self.stop_loss = stop_loss
         
         # Benchmark
         TWII_ret = TWII.loc[self.start_day:].pct_change()
@@ -97,27 +108,45 @@ class Backtest:
         self.portfolio = pd.DataFrame()
         stop_loss_day = self.start_day
         
-        while self.start_day != TW150.index[-1]:
+        while self.start_day != twStock.index[-1]:
         
             # 移除重複出現的日期
             self.portfolio = self.portfolio.iloc[:-1]
             
+            # 股票池：stock_id
+            if strategy == 'skew2':
+                scale_rank = pd.concat([twScale.loc[:self.start_day].iloc[-(feature_period*2+1):], 
+                                        twScale.loc[self.start_day:].iloc[1:rebalance+1]]).dropna(axis = 1).loc[self.start_day]
+            else:
+                scale_rank = pd.concat([twScale.loc[:self.start_day].iloc[-(feature_period+1):], 
+                                        twScale.loc[self.start_day:].iloc[1:rebalance+1]]).dropna(axis = 1).loc[self.start_day]
+            if scale_select == 'max':
+                stock_id = scale_rank.sort_values(ascending = False)[:scale_num].index
+            elif scale_select == 'min':
+                stock_id = scale_rank.sort_values(ascending = True)[:scale_num].index
+
             # 挑選投資標的
-            feature = globals()['get_' + self.strategy](trade_date = self.start_day, period = self.feature_period)
-            buy_stock = feature.sort_values(by = 'feature', 
-                                            ascending=self.selected_from_last).head(self.n_stock).index
+            feature = globals()['get_' + self.strategy](stock_id = stock_id, trade_date = self.start_day, 
+                                                        period = feature_period)
+            
+            if feature_select == 'max':
+                buy_stock = feature.sort_values(by = 'feature', 
+                                                ascending=False).head(stock_num).index
+            elif feature_select == 'min':
+                buy_stock = feature.sort_values(by = 'feature', 
+                                                ascending=True).head(stock_num).index                
             
             # 計算投資權重
-            mean_return = ret1_TW150.loc[:self.start_day].iloc[-240:][buy_stock].mean()
-            cov_matrix = ret1_TW150.loc[:self.start_day].iloc[-240:][buy_stock].cov()
-            w = min_variance(mean_return, cov_matrix, k = self.max_percentage)['x']
+            mean_return = ret1_twStock[stock_id].loc[:self.start_day].iloc[-240:][buy_stock].mean()
+            cov_matrix = ret1_twStock[stock_id].loc[:self.start_day].iloc[-240:][buy_stock].cov()
+            w = min_variance(mean_return, cov_matrix, k = max_percentage)['x']
             
             # 投資組合的總資產
             portfolio_once = pd.DataFrame()
             
             for i in range(len(w)):
                 each_w = self.beginning_money * w[i]
-                each_one = TW150[buy_stock[i]].loc[self.start_day:].iloc[:self.rebalance]
+                each_one = twStock[stock_id][buy_stock[i]].loc[self.start_day:].iloc[:rebalance]
                 each_ret = each_one.pct_change()
                 each_ret.iloc[0] = 0
                 each_ret += 1
@@ -128,10 +157,10 @@ class Backtest:
             self.portfolio = pd.concat([self.portfolio, portfolio_once], axis = 0)
         
             # 設置停損點
-            if self.dynamic_rebalance == True:
+            if dynamic_rebalance == True:
                 self.max_drawdown = (self.portfolio.loc[stop_loss_day:] / self.portfolio.loc[stop_loss_day:].rolling(min_periods = 1, window = 240).max()) - 1
-                if len(self.max_drawdown[self.max_drawdown.loc[:,0] < -self.stop_loss]) != 0:
-                    stop_loss_day = self.max_drawdown[self.max_drawdown.loc[:,0] < -self.stop_loss].iloc[0].name
+                if len(self.max_drawdown[self.max_drawdown.loc[:,0] < -stop_loss]) != 0:
+                    stop_loss_day = self.max_drawdown[self.max_drawdown.loc[:,0] < -stop_loss].iloc[0].name
                     self.portfolio = self.portfolio.loc[:stop_loss_day]
                 
             self.start_day = self.portfolio.index[-1]  
@@ -143,8 +172,8 @@ class Backtest:
         
 
     def show_portfolio(self):
-        self.portfolio_benchmark.plot(grid = True, title = self.strategy+'_strategy')
-        self.max_drawdown.plot.area(stacked=False, color = 'red', title = self.strategy+'_drawdown', legend=False)
+        self.portfolio_benchmark.plot(grid = True, title = self.strategy+'_strategy', figsize=(16, 6))
+        self.max_drawdown.plot.area(stacked=False, color = 'red', title = self.strategy+'_drawdown', legend=False, figsize=(16, 6))
         return 
 
 
@@ -163,10 +192,7 @@ class Backtest:
         (9)All
         ''' 
         
-        # 定義傳入值屬性
-        self.index = index   
-        
-        day_of_year = int(len(TW150.loc['2006-01-02':'2020-12-31'].index) / 15)
+        day_of_year = int(len(twStock.loc['2006-01-02':'2020-12-31'].index) / 15)
         total_days = len(self.portfolio.index)
         total_years = total_days / day_of_year
         portfolio_ret = self.portfolio.pct_change().dropna()
@@ -193,7 +219,7 @@ class Backtest:
         B_Sortino_ratio = B_Annual_return / B_Neg_annual_volatility
         B_Calmar_ratio = B_Annual_return / B_Max_drawdown
         
-        if self.index == 'All':
+        if index == 'All':
             return print(' <Strategy> \n','Max_drawdown:',np.round(Max_drawdown, 4), '\n',
                      'Accumulation_return:',np.round(Accumulation_return, 4), '\n',
                      'Annual_return:',np.round(Annual_return, 4), '\n',
@@ -211,5 +237,5 @@ class Backtest:
                      'Sortino_ratio:',np.round(B_Sortino_ratio, 4), '\n',
                      'Calmar_ratio:',np.round(B_Calmar_ratio, 4))
         else:
-            return print(' <Strategy> \n',self.index, ':', np.round(eval(self.index),4),
-                        '\n \n <Benchmark> \n',self.index, ':', np.round(eval('B_'+self.index),4))
+            return print(' <Strategy> \n',index, ':', np.round(eval(index),4),
+                        '\n \n <Benchmark> \n',index, ':', np.round(eval('B_'+index),4))

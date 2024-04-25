@@ -170,7 +170,7 @@ self.portfolio_benchmark
 若您對下一階段的專案有興趣；或想要一起優化理財機器人；或是想了解更多此份 repository，都歡迎寄信與我討論！
 
 ##### 江祐宏 Alex Chiang
-##### 個人email: atigerhh@gmail.com
+##### 個人email: yuhung.career@gmail.com
 
 
 ---
